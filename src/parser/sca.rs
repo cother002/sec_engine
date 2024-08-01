@@ -1,6 +1,12 @@
 // SCA
-use crate::{parser::base::Parser, utils::gitlab::Issue};
+use crate::conf::setting::*;
+use crate::utils::gitlab;
+use crate::{parser::base::BaseParser, utils::gitlab::Issue};
 use serde_json::Value;
+
+use super::base::BaseReport;
+use super::secret::{SecVul, SecretReport};
+use log::*;
 
 #[derive(Debug)]
 pub struct SCAReport {
@@ -40,19 +46,25 @@ impl SCAVul {
 
 impl From<&Value> for SCAVul {
     fn from(obj: &serde_json::Value) -> Self {
-        let message = obj["name"].to_string();
-        let description = obj["description"].to_string();
-        let severity = obj["severity"].to_string();
-        let mut cve = obj["cve"].to_string();
-        let location = obj["location"]["file"].to_string();
-        let solution = obj["solution"].to_string();
-        let dependency_name = obj["location"]["dependency"]["package"]["name"].to_string();
-        let dependency_version = obj["location"]["dependency"]["version"].to_string();
+        let message = obj["name"].as_str().unwrap().to_owned();
+        let description = obj["description"].as_str().unwrap().to_owned();
+        let severity = obj["severity"].as_str().unwrap().to_owned();
+        let mut cve = String::new();
+        let location = obj["location"]["file"].as_str().unwrap().to_owned();
+        let solution = obj["solution"].as_str().unwrap().to_owned();
+        let dependency_name = obj["location"]["dependency"]["package"]["name"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let dependency_version = obj["location"]["dependency"]["version"]
+            .as_str()
+            .unwrap()
+            .to_owned();
 
         if let Some(identifiers) = obj["identifiers"].as_array() {
             for identifier in identifiers {
-                if let Some("cve") = identifier["cve"].as_str() {
-                    cve = identifier["name"].to_string();
+                if let Some("cve") = identifier["type"].as_str() {
+                    cve = identifier["name"].to_string().replace("\"", "");
                     break;
                 }
             }
@@ -80,13 +92,13 @@ impl SCAReport {
     }
 }
 
-impl Parser<SCAVul> for SCAReport {
+impl BaseParser<SCAVul> for SCAReport {
     fn parse(self: &mut Self, content: &str) -> &Vec<SCAVul> {
         let report: Value = serde_json::from_str(content).expect("Failed to parse JSON");
         if let Some(vuls) = report["vulnerabilities"].as_array() {
             for vul in vuls {
                 let _vul: SCAVul = SCAVul::from(vul);
-                println!("{:?}", _vul);
+                debug!("{:?}", _vul);
                 self.vuls.push(_vul);
             }
         }
@@ -96,8 +108,6 @@ impl Parser<SCAVul> for SCAReport {
 
     fn export(self: &Self, excel: &str) -> bool {
         todo!();
-
-        true
     }
 
     fn to_issue(self: &Self) -> Issue {
@@ -116,12 +126,59 @@ impl Parser<SCAVul> for SCAReport {
         let mut desc: String = format!("{title}\n{sep}");
 
         for vul in self.vuls.iter() {
-            desc = format!("{}\n{}", desc, vul.to_issue_record());
+            desc = format!(
+                "{}\n{}",
+                desc,
+                vul.to_issue_record()
+                    .trim()
+                    .replace("\\n", "<br>")
+                    .replace("\n", "<br>")
+            );
         }
 
         let mut issue: Issue = Issue::new();
+        issue.engine = self.engine.to_string();
+        issue.project_id = CI_PROJECT_ID.to_string();
         issue.title = format!("{} scan report", self.engine);
         issue.description = desc;
+
+        debug!("desc: {}", issue.description);
         issue
+    }
+
+    fn filter(self: &mut Self) -> &Vec<SCAVul> {
+        &self.vuls
+    }
+}
+
+impl BaseReport<SCAVul> for SCAReport {
+    async fn report(self: &mut Self) {
+        self.filter();
+
+        if self.vuls.len() < 1 {
+            info!("skip, no sca vuls...");
+            return;
+        }
+
+        let body: String = gitlab::list_issue(
+            CI_PROJECT_ID.as_str(),
+            GITLAB_USER_ID.as_str(),
+            self.engine.as_str(),
+        )
+        .await
+        .unwrap();
+
+        let json: Value = serde_json::from_str(body.as_str()).expect("not valid json format");
+
+        let mut issue_iids: Vec<String> = vec![];
+        for item in json.as_array().unwrap() {
+            let issue_iid: String = item["iid"].to_string();
+            debug!("issue_iid:{issue_iid}");
+            let _ = gitlab::close_issue(CI_PROJECT_ID.as_str(), issue_iid.as_str()).await;
+            issue_iids.push(issue_iid);
+        }
+        // println!("{:?}", issue_iids);
+
+        let _ = gitlab::new_issue(&self.to_issue()).await;
     }
 }

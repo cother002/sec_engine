@@ -1,0 +1,3 @@
+#!conf
+
+pub mod setting;
