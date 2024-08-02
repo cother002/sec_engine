@@ -5,7 +5,6 @@ use crate::{parser::base::BaseParser, utils::gitlab::Issue};
 use serde_json::Value;
 
 use super::base::BaseReport;
-use super::secret::{SecVul, SecretReport};
 use log::*;
 
 #[derive(Debug)]
@@ -171,7 +170,7 @@ impl BaseReport<SCAVul> for SCAReport {
         let json: Value = serde_json::from_str(body.as_str()).expect("not valid json format");
 
         let mut issue_iids: Vec<String> = vec![];
-        for item in json.as_array().unwrap() {
+        for item in json.as_array().unwrap_or(&Vec::new()) {
             let issue_iid: String = item["iid"].to_string();
             debug!("issue_iid:{issue_iid}");
             let _ = gitlab::close_issue(CI_PROJECT_ID.as_str(), issue_iid.as_str()).await;

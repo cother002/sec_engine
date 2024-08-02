@@ -1,6 +1,5 @@
 // sast
 
-use log::{debug, error, info};
 use std::{
     env,
     fmt::{Display, Formatter},
@@ -8,7 +7,7 @@ use std::{
 
 use crate::{
     conf::setting::*,
-    parser::base::{BaseParser, RiskOwner},
+    parser::base::BaseParser,
     utils::gitlab::{self, Issue},
 };
 use serde_json::Value;
@@ -190,7 +189,7 @@ impl BaseParser<SASTVul> for SASTReport {
 impl BaseReport<SASTVul> for SASTReport {
     async fn report(self: &mut Self) {
         // comment for debug
-        // self.filter();
+        self.filter();
 
         if self.vuls.len() < 1 {
             println!("no issue, skip create new issue...");

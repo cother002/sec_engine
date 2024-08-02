@@ -1,5 +1,5 @@
 //! xlsx functions
-use xlsxwriter::{prelude::*, workbook};
+use xlsxwriter::{prelude::*};
 
 fn new_workbook(fname: &String) -> Result<Workbook, XlsxError> {
     Workbook::new(fname)

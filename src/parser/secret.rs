@@ -3,7 +3,7 @@ use crate::{
     utils::gitlab::{self, Issue},
 };
 
-use super::base::{BaseParser, BaseReport, RiskOwner};
+use super::base::{BaseParser, BaseReport};
 use serde_json::Value;
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub struct SecVul {
     severity: String,
     cve: String,
     location: String,
-    solution: String,
+    // solution: String,
     // owner: RiskOwner,
 }
 
@@ -24,7 +24,7 @@ impl SecVul {
         values.push(self.severity.to_string());
         values.push(self.cve.to_string());
         values.push(self.location.to_string());
-        values.push(self.solution.to_string());
+        // values.push(self.solution.to_string());
         values.push(self.description.to_string());
 
         format!("|{}|", values.join("|"))
@@ -36,9 +36,15 @@ impl From<&Value> for SecVul {
         let message = value["name"].to_string().replace("\"", "");
         let description = value["description"].to_string().replace("\"", "");
         let severity = value["severity"].to_string().replace("\"", "");
-        let cve = value["cve"].to_string().replace("\"", "");
+        let cve = value["cve"]
+            .to_string()
+            .replace("\"", "")
+            .split(":")
+            .last()
+            .unwrap()
+            .to_string();
         let location = value["location"]["file"].to_string().replace("\"", "");
-        let solution = value["solution"].to_string().replace("\"", "");
+        // let solution = value["solution"].to_string().replace("\"", "");
 
         SecVul {
             message: message,
@@ -46,7 +52,7 @@ impl From<&Value> for SecVul {
             severity: severity,
             cve: cve,
             location: location,
-            solution: solution,
+            // solution: solution,
             // owner: todo!(),
         }
     }
@@ -76,7 +82,7 @@ impl BaseParser<SecVul> for SecretReport {
                 self.vuls.push(_vul);
             }
         }
-
+        println!("{:?}", self.vuls);
         &self.vuls
     }
 
@@ -87,12 +93,12 @@ impl BaseParser<SecVul> for SecretReport {
     }
 
     fn to_issue(self: &Self) -> Issue {
-        const COLS: [&str; 6] = [
+        const COLS: [&str; 5] = [
             "title",
             "severity",
             "cve",
             "location",
-            "solution",
+            // "solution",
             "description",
         ];
         let title = format!("|{}|", COLS.join("|"));
@@ -140,7 +146,8 @@ impl BaseReport<SecVul> for SecretReport {
         .unwrap();
         let json: Value = serde_json::from_str(body.as_str()).expect("not valid json format");
         let mut issue_iids: Vec<String> = vec![];
-        for item in json.as_array().unwrap() {
+
+        for item in json.as_array().unwrap_or(&Vec::new()) {
             let issue_iid: String = item["iid"].to_string();
             log::debug!("issue_iid:{issue_iid}",);
             let _ = gitlab::close_issue(CI_PROJECT_ID.as_str(), issue_iid.as_str()).await;

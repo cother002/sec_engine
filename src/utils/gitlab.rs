@@ -1,5 +1,7 @@
 //! gitlab functions
 
+use core::fmt;
+
 use lazy_static::lazy_static;
 
 use crate::conf::setting::*;
@@ -57,8 +59,8 @@ pub async fn new_issue(issue: &Issue) -> Result<String, Error> {
     };
 
     let body = serde_urlencoded::to_string(data).unwrap();
-    // println!("url: {}?{}", url, query);
-    let body = GITLAB_CLIENT
+    println!("new_issue url: {url}, body: {body}");
+    let cont = GITLAB_CLIENT
         .post(format!("{url}"))
         .body(body)
         .send()
@@ -66,7 +68,8 @@ pub async fn new_issue(issue: &Issue) -> Result<String, Error> {
         .text()
         .await?;
 
-    Ok(body)
+    println!("new_issue resp: {cont}");
+    Ok(cont)
 }
 
 // 获取issues
@@ -104,7 +107,7 @@ where
 
     let body = GITLAB_CLIENT.get(url).send().await?.text().await?;
 
-    // println!("body = {body:?}");
+    println!("body = {body:?}");
     Ok(body)
 }
 
@@ -236,4 +239,17 @@ where
     // )
     // .replace('"', "");
     todo!("创建issue");
+}
+
+
+// 设置todo为done
+pub async fn issue_todo_done<T>(todo_iid: &T) -> Result<String, Error>
+where
+    T: ?Sized + std::fmt::Debug
+{
+    let url = format!("{}/todos/{:?}/mark_as_done",GITLAB_URL_PREFIX.as_str(), todo_iid).replace('\"', "");
+
+    let body = GITLAB_CLIENT.post(url).send().await?.text().await?;
+
+    Ok(body)
 }
