@@ -24,7 +24,7 @@ pub trait BaseParser<T> {
     }
 }
 
-pub trait BaseReport<T> {
+pub trait BaseReport<T> {    
     async fn report(self: &mut Self);
 }
 

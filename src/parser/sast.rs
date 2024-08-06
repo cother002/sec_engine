@@ -11,7 +11,6 @@ use crate::{
     utils::gitlab::{self, Issue},
 };
 use serde_json::Value;
-use xlsxwriter;
 
 use super::base::BaseReport;
 
@@ -127,29 +126,7 @@ impl BaseParser<SASTVul> for SASTReport {
     }
 
     fn export(self: &Self, excel: &str) -> bool {
-        let workbook = xlsxwriter::Workbook::new(excel).unwrap();
-        let mut sheet = workbook.add_worksheet(Some("sheet")).unwrap();
-        let mut row = 1;
-        for vul in self.vuls.iter() {
-            let mut col: u16 = 1;
-            _ = sheet.write_string(row, col, vul.message.as_str(), None);
-            col += 1;
-            _ = sheet.write_string(row, col, vul.cve.as_str(), None);
-            col += 1;
-            _ = sheet.write_string(row, col, vul.severity.as_str(), None);
-            col += 1;
-            _ = sheet.write_string(row, col, vul.location.as_str(), None);
-            col += 1;
-            _ = sheet.write_string(row, col, vul.description.as_str(), None);
-            col += 1;
-            _ = sheet.write_string(row, col, vul.message.as_str(), None);
-            col += 1;
-            _ = sheet.write_string(row, col, vul.message.as_str(), None);
-
-            row += 1;
-        }
-
-        true
+        todo!()
     }
 
     fn to_issue(self: &Self) -> Issue {

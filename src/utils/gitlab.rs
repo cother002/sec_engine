@@ -1,6 +1,5 @@
 //! gitlab functions
 
-use core::fmt;
 
 use lazy_static::lazy_static;
 
@@ -241,13 +240,17 @@ where
     todo!("创建issue");
 }
 
-
 // 设置todo为done
 pub async fn issue_todo_done<T>(todo_iid: &T) -> Result<String, Error>
 where
-    T: ?Sized + std::fmt::Debug
+    T: ?Sized + std::fmt::Debug,
 {
-    let url = format!("{}/todos/{:?}/mark_as_done",GITLAB_URL_PREFIX.as_str(), todo_iid).replace('\"', "");
+    let url = format!(
+        "{}/todos/{:?}/mark_as_done",
+        GITLAB_URL_PREFIX.as_str(),
+        todo_iid
+    )
+    .replace('\"', "");
 
     let body = GITLAB_CLIENT.post(url).send().await?.text().await?;
 
