@@ -2,10 +2,8 @@ use parser::{
     base::{BaseParser, BaseReport},
     sast, sca, secret,
 };
-use std::{
-    env::{self},
-    fs,
-};
+use std::{fs, env};
+use tokio;
 
 pub mod conf;
 pub mod parser;
