@@ -77,12 +77,6 @@ impl From<&Value> for SASTVul {
 
         let location = format!("[{location_fpath}:{location_lineno}]({location_href})");
 
-        let key = "gitlab_url";
-        match env::var_os(key) {
-            Some(val) => println!("{key}: {val:?}"),
-            None => println!("{key} is not defined in the environment."),
-        }
-
         SASTVul {
             message,
             description,
