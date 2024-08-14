@@ -178,6 +178,11 @@ impl BaseReport<SCAVul> for SCAReport {
         }
         // println!("{:?}", issue_iids);
 
+        if CI_MERGE_REQUEST_IID.as_str() == "" {
+            log::error!("no merge request, skip create issue...");
+            return;
+        }
+
         let _ = gitlab::new_issue(&self.to_issue()).await;
     }
 }
