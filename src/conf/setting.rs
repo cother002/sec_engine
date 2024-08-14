@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use std::{env, sync::Arc, sync::Mutex};
 
 // const GITLAB_HOST: &str = "http://10.10.10.167/";
-// const GITLAB_HOST: &str = "https://cbb3-58-247-130-218.ngrok-free.app/";
+// const GITLAB_HOST: &str = "https://d8f5-116-228-147-46.ngrok-free.app/";
 // const GITLAB_HOST: &str = "http://127.0.0.1:8899/";
 // const GITLAB_TOKEN: &str = "vH5ooiCAn6AA53tdpGs9";
 // 5Za9qoy5SdFWcfXTueug
@@ -32,6 +32,4 @@ lazy_static! {
     
     pub static ref AI_TOKEN: String = env::var("AI_TOKEN").unwrap_or(String::new());
     pub static ref AI_HOST: String = env::var("AI_HOST").unwrap_or(String::new());
-    
-    pub static ref DIFF_FILES: Arc<Mutex<Vec<(String, String)>>> = Arc::new(Mutex::new(vec![]));
 }
