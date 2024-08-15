@@ -6,7 +6,7 @@ use crate::{
 use super::base::{BaseParser, BaseReport};
 use serde_json::Value;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SecVul {
     message: String,
     description: String,
@@ -124,8 +124,8 @@ impl BaseParser<SecVul> for SecretReport {
         issue
     }
 
-    fn filter(self: &mut Self) -> &Vec<SecVul> {
-        &self.vuls
+    async fn filter(self: &mut Self) -> Vec<SecVul> {
+        self.vuls.clone()
     }
 }
 

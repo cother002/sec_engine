@@ -13,7 +13,7 @@ pub struct SCAReport {
     pub(crate) vuls: Vec<SCAVul>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SCAVul {
     message: String,
     description: String,
@@ -145,8 +145,8 @@ impl BaseParser<SCAVul> for SCAReport {
         issue
     }
 
-    fn filter(self: &mut Self) -> &Vec<SCAVul> {
-        &self.vuls
+    async fn filter(self: &mut Self) -> Vec<SCAVul> {
+        self.vuls.clone()
     }
 }
 

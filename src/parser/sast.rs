@@ -142,10 +142,10 @@ impl BaseParser<SASTVul> for SASTReport {
         issue
     }
 
-    fn filter(self: &mut Self) -> &Vec<SASTVul> {
+    async fn filter(self: &mut Self) -> Vec<SASTVul> {
         let mut vuls: Vec<SASTVul> = vec![];
         for vul in &self.vuls {
-            if self.is_in_diff(vul.location.as_str()) {
+            if self.is_in_diff(vul.location.as_str()).await {
                 vuls.push(vul.clone());
             }
         }
@@ -153,14 +153,14 @@ impl BaseParser<SASTVul> for SASTReport {
         self.vuls.clear();
         self.vuls.extend(vuls);
 
-        &self.vuls
+        self.vuls.clone()
     }
 }
 
 impl BaseReport<SASTVul> for SASTReport {
     async fn report(self: &mut Self) {
         // comment for debug
-        self.filter();
+        self.filter().await;
 
         if self.vuls.len() < 1 {
             println!("no issue, skip create new issue...");
