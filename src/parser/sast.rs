@@ -168,6 +168,11 @@ impl BaseReport<SASTVul> for SASTReport {
         }
 
         let issue = self.to_issue();
+
+        if CI_MERGE_REQUEST_IID.as_str() == "" {
+            log::error!("no merge request, skip create issue...");
+            return;
+        }
         let _ = gitlab::new_issue(&issue).await;
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    conf::setting::{CI_PROJECT_ID, GITLAB_USER_ID},
+    conf::setting::{CI_MERGE_REQUEST_IID, CI_PROJECT_ID, GITLAB_USER_ID},
     utils::gitlab::{self, Issue},
 };
 
@@ -152,6 +152,11 @@ impl BaseReport<SecVul> for SecretReport {
             log::debug!("issue_iid:{issue_iid}",);
             let _ = gitlab::close_issue(CI_PROJECT_ID.as_str(), issue_iid.as_str()).await;
             issue_iids.push(issue_iid);
+        }
+
+        if CI_MERGE_REQUEST_IID.as_str() == "" {
+            log::error!("no merge request, skip create issue...");
+            return;
         }
 
         let _ = gitlab::new_issue(&self.to_issue()).await;
