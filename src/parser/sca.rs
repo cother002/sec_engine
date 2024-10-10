@@ -347,7 +347,7 @@ impl SCAReport {
                     } 
                     new_vul.cve = cve;
                     // new_vul.description = format!("{}风险组件, 详情可查看", vul.get_risk_cn());
-                    new_vul.description =  format!("{}风险组件, 详情可查看[{}](https://www.cvedetails.com/cve/{}/)", vul.get_risk_cn(), vul.cve, vul.cve);
+                    new_vul.description =  format!("{}风险组件, 详情可查看[{}](https://avd.aliyun.com/detail/{}/)", vul.get_risk_cn(), vul.cve, vul.cve);
                 }                 
             } else {
                 println!("插入新组件: {}, risk: {}, cve: {}", vul.dependency_name, vul.get_risk_cn(), vul.cve);
