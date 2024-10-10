@@ -1,5 +1,6 @@
 //! gitlab functions
 
+use std::fmt::Display;
 
 use lazy_static::lazy_static;
 
@@ -25,6 +26,13 @@ impl Issue {
             description: String::new(),
             assignee_id: GITLAB_USER_ID.to_string(),
         }
+    }
+}
+
+impl Display for Issue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        println!("engine: {}\nproject_id: {}\ntitle: {}\nissue: \n{}\n", self.engine, self.project_id, self.title, self.description);
+        Ok(())
     }
 }
 
@@ -58,7 +66,9 @@ pub async fn new_issue(issue: &Issue) -> Result<String, Error> {
     };
 
     let body = serde_urlencoded::to_string(data).unwrap();
-    println!("new_issue url: {url}, body: {body}");
+    println!("new_issue url: {url}, body: {body}, {}", body.len());
+    // return Ok(String::new());
+
     let cont = GITLAB_CLIENT
         .post(format!("{url}"))
         .body(body)
@@ -173,7 +183,8 @@ pub async fn get_mr_commit_hash<T: std::fmt::Debug>(project: T, iid: T) -> Resul
     println!("get_mr_commit: {url}");
     let body = GITLAB_CLIENT.get(url).send().await?.text().await?;
     let json: Value = serde_json::from_str(&body).unwrap();
-    let sha: String = json["head_pipeline"]["sha"].as_str().unwrap().to_string();
+    // let sha: String = json["merge_commit_sha"].as_str().unwrap().to_string();
+    let sha: String = json["sha"].as_str().unwrap().to_string();
 
     Ok(sha)
 
@@ -255,4 +266,25 @@ where
     let body = GITLAB_CLIENT.post(url).send().await?.text().await?;
 
     Ok(body)
+}
+
+// mr commit
+pub async fn new_mr_comment(comment: String) -> Result<String, Error> {
+    let url = format!(
+        "{}/projects/{:?}/merge_requests/{:?}/notes",
+        GITLAB_URL_PREFIX.as_str(),
+        CI_PROJECT_ID.to_owned(),
+        CI_MERGE_REQUEST_IID.to_owned()
+    )
+    .replace('\"', "");
+
+    let resp = GITLAB_CLIENT
+        .post(url)
+        .body(comment)
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    Ok(resp)
 }
