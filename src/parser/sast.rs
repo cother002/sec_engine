@@ -1,14 +1,15 @@
 // sast
 
 use std::{
-    env,
+    borrow::BorrowMut,
     fmt::{Display, Formatter},
+    vec,
 };
 
 use crate::{
     conf::setting::*,
     parser::base::BaseParser,
-    utils::gitlab::{self, Issue},
+    utils::gitlab::{self, get_commit_diff, get_mr_commit_hash, Issue},
 };
 use serde_json::Value;
 
@@ -18,6 +19,7 @@ use super::base::BaseReport;
 pub struct SASTReport {
     pub engine: String,
     pub vuls: Vec<SASTVul>,
+    pub diff_files: Vec<(String, String)>,
 }
 
 #[derive(Debug, Clone)]
@@ -90,10 +92,31 @@ impl From<&Value> for SASTVul {
 
 impl SASTReport {
     pub fn new() -> Self {
-        SASTReport {
+        let report = SASTReport {
             vuls: vec![],
             engine: String::from("SAST"),
+            diff_files: vec![],
+        };
+
+        report
+    }
+
+    pub async fn get_diffs(self: &mut Self) -> Vec<(String, String)> {
+        if self.diff_files.is_empty() {
+            let hash =
+                get_mr_commit_hash(CI_PROJECT_ID.to_owned(), CI_MERGE_REQUEST_IID.to_owned())
+                    .await
+                    .unwrap();
+            if self.diff_files.is_empty() {
+                let diff_files = get_commit_diff(CI_PROJECT_ID.to_owned(), hash.as_str())
+                    .await
+                    .unwrap();
+
+                self.diff_files.extend(diff_files);
+            }
         }
+
+        self.diff_files.clone()
     }
 }
 
@@ -124,14 +147,16 @@ impl BaseParser<SASTVul> for SASTReport {
     }
 
     fn to_issue(self: &Self) -> Issue {
-        const COLS: [&str; 5] = ["title", "severity", "cve", "location", "description"];
+        const COLS: [&str; 6] = ["id", "title", "severity", "cve", "location", "description"];
         let title = format!("|{}|", COLS.join("|"));
         let sep = format!("|{}|", ["--"; COLS.len()].join("|"));
         let mut desc: String = format!("{title}\n{sep}");
         let mut issue: Issue = Issue::new();
-
+        
+        let mut idx = 1;
         for vul in self.vuls.iter() {
-            desc = format!("{}\n{}", desc, vul.to_issue_record());
+            desc = format!("{desc}\n|{idx}{}", vul.to_issue_record());
+            idx+=1;
         }
 
         issue.engine = self.engine.to_string();
@@ -142,10 +167,22 @@ impl BaseParser<SASTVul> for SASTReport {
         issue
     }
 
+    async fn is_in_diff(self: &Self, fpath: &str) -> bool {
+        let mut flag = false;
+        for (_fpath, _) in self.diff_files.iter() {
+            println!("_path: {}, path: {}", _fpath, fpath);
+            if _fpath == fpath {
+                flag = true;
+                break;
+            }
+        }
+        flag
+    }
+
     async fn filter(self: &mut Self) -> Vec<SASTVul> {
         let mut vuls: Vec<SASTVul> = vec![];
         for vul in &self.vuls {
-            if self.is_in_diff(vul.location.as_str()).await {
+            if CI_MERGE_REQUEST_IID.as_str() == "" || self.is_in_diff(vul.location.as_str()).await {
                 vuls.push(vul.clone());
             }
         }
