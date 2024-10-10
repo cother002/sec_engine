@@ -1,5 +1,5 @@
 use crate::{
-    conf::setting::{CI_MERGE_REQUEST_IID, CI_PROJECT_ID, GITLAB_USER_ID},
+    conf::setting::{CI_MERGE_REQUEST_IID, CI_PROJECT_ID, CI_PROJECT_URL, GITLAB_USER_ID},
     utils::gitlab::{self, Issue},
 };
 
@@ -43,8 +43,18 @@ impl From<&Value> for SecVul {
             .last()
             .unwrap()
             .to_string();
-        let location = value["location"]["file"].to_string().replace("\"", "");
+        let location_fpath = value["location"]["file"].to_string().replace("\"", "");
+        let location_lineno = value["location"]["start_line"].to_string().replace("\"", "");
         // let solution = value["solution"].to_string().replace("\"", "");
+
+        let location_href = format!(
+            "{}/-/blob/develop/{}",
+            CI_PROJECT_URL.as_str(),
+            location_fpath
+        );
+
+        let location: String = format!("[{location_fpath}:{location_lineno}]({location_href})");
+        println!("location: {}", location);
 
         SecVul {
             message: message,
@@ -61,7 +71,7 @@ impl From<&Value> for SecVul {
 #[derive(Debug)]
 pub struct SecretReport {
     pub engine: String,
-    pub(crate) vuls: Vec<SecVul>,
+    pub(crate) vuls: Vec<SecVul>
 }
 
 impl SecretReport {
@@ -93,7 +103,8 @@ impl BaseParser<SecVul> for SecretReport {
     }
 
     fn to_issue(self: &Self) -> Issue {
-        const COLS: [&str; 5] = [
+        const COLS: [&str; 6] = [
+            "id",
             "title",
             "severity",
             "cve",
@@ -106,15 +117,16 @@ impl BaseParser<SecVul> for SecretReport {
         let sep = format!("|{}|", ["--"; COLS.len()].join("|"));
         let mut desc: String = format!("{title}\n{sep}");
 
+        let mut idx = 1;
         for vul in self.vuls.iter() {
             desc = format!(
-                "{}\n{}",
-                desc,
+                "{desc}\n|{idx}{}",
                 vul.to_issue_record()
                     .trim()
                     .replace("\\n", "<br>")
                     .replace("\n", "<br>")
             );
+            idx+=1;
         }
         let mut issue: Issue = Issue::new();
         issue.engine = self.engine.to_string();
@@ -131,7 +143,7 @@ impl BaseParser<SecVul> for SecretReport {
 
 impl BaseReport<SecVul> for SecretReport {
     async fn report(self: &mut Self) {
-        self.filter();
+        self.filter().await;
 
         if self.vuls.len() < 1 {
             return;
