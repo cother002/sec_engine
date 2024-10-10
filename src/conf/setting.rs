@@ -18,18 +18,17 @@ const ISSUE_TEMPLATE: &str = "
 {}
 ";
 
+pub static mut HG_AI_CLIENT: Option<&mut gradio::Client> = None;
+
 lazy_static! {
     pub static ref CI_PROJECT_URL: String = env::var("CI_PROJECT_URL").unwrap_or(String::new());
     pub static ref CI_PROJECT_ID: String = env::var("CI_PROJECT_ID").unwrap_or(String::new());
-
     pub static ref GITLAB_USER_ID: String = env::var("GITLAB_USER_ID").unwrap_or(String::new());
     pub static ref GITLAB_HOST: String = env::var("GITLAB_HOST").unwrap_or(String::new());
     pub static ref GITLAB_TOKEN: String = env::var("GITLAB_TOKEN").unwrap_or(String::new());
     pub static ref GITLAB_URL_PREFIX: String = format!("{}/api/v4", GITLAB_HOST.to_owned());
-
     pub static ref CI_MERGE_REQUEST_IID: String =
         env::var("CI_MERGE_REQUEST_IID").unwrap_or(String::new());
-    
     pub static ref AI_TOKEN: String = env::var("AI_TOKEN").unwrap_or(String::new());
     pub static ref AI_HOST: String = env::var("AI_HOST").unwrap_or(String::new());
 }
